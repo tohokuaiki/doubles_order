@@ -1,0 +1,16 @@
+name: doubles_pair
+services: 
+  apache-php: 
+    container_name: doubles_pair_apache
+    build: 
+      dockerfile: ./Dockerfile
+      context: .
+      tags: 
+       - "php:8.2-apache"
+    image: "php:8.2-apache"
+    ports:
+      - "18080:80"
+    volumes:
+      - type: bind
+        source: ../src
+        target: /var/www/html
