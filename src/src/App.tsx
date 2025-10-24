@@ -25,17 +25,17 @@ function App() {
     const [removeMember, setRemoveMember] = useState<string[]>([]);
 
     const initMemberList = useCallback(() => {
-        let setok = false;
-        const cookieData = Cookies.get(MEMBER_COOKIE_NAME);
-        if (cookieData) {
-            try {
-                setMemberList(JSON.parse(cookieData));
-                setok = true;
-            } catch {
-                Cookies.remove(MEMBER_COOKIE_NAME);
-            }
-        }
-        if (!setok) {
+        // let setok = false;
+        // const cookieData = Cookies.get(MEMBER_COOKIE_NAME);
+        // if (cookieData) {
+        //     try {
+        //         setMemberList(JSON.parse(cookieData));
+        //         setok = true;
+        //     } catch {
+        //         Cookies.remove(MEMBER_COOKIE_NAME);
+        //     }
+        // }
+        // if (!setok) {
             (async () => {
                 setLoading(true);
                 const resp = await fetch(import.meta.env.VITE_DOUBLES_ORDER_MEMBER);
@@ -45,21 +45,21 @@ function App() {
                         men: Object.entries(res.men).map(([k, v]) => ({ name: k, rank: v })),
                         women: Object.entries(res.women).map(([k, v]) => ({ name: k, rank: v })),
                     };
-                    saveMemberList(list);
+                    // saveMemberList(list);
                     return list;
                 });
                 setLoading(false);
             })()
-        }
+        // }
     }, []);
 
     useEffect(() => {
         initMemberList();
     }, [initMemberList]);
 
-    const saveMemberList = (list: MemberList) => {
-        Cookies.set(MEMBER_COOKIE_NAME, JSON.stringify(list), { expires: 365 });
-    };
+    // const saveMemberList = (list: MemberList) => {
+    //     Cookies.set(MEMBER_COOKIE_NAME, JSON.stringify(list), { expires: 365 });
+    // };
 
     const appendMember = (member: Member, sex: SexList) => {
         setEntryList(prev => {
@@ -202,7 +202,7 @@ function App() {
                                         onClick={() => {
                                             if (confirm('ボタンを全部消してよろしいですか？')) {
                                                 setMemberList(defaultMemberList);
-                                                saveMemberList(defaultMemberList);
+                                                // saveMemberList(defaultMemberList);
                                             }
                                         }}>参加者ボタンを全部消去</button>
                                 </p>
@@ -306,7 +306,7 @@ function App() {
                             <div className="col text-center">
                                 <p className="mt-2"><button type="button" className="btn btn-primary"
                                     onClick={() => {
-                                        setEntryList(defaultEntryList);
+                                        // setEntryList(defaultEntryList);
                                         setStep('step1');
                                         resetValues();
                                         setHistory([]);

@@ -1,5 +1,6 @@
 .env
 .env.production
+.env.development
 
 # Data
 public/member.json
