@@ -55,7 +55,7 @@ function App() {
                             ),
                         ];
                     });
-                } catch (e) {
+                } catch {
                     Cookies.remove(MEMBER_COOKIE_NAME);
                 }
             }
@@ -81,7 +81,7 @@ function App() {
                 ];
             });
             Cookies.set(MEMBER_COOKIE_NAME, JSON.stringify(saveList), { expires: 365 });
-        } catch (e) {
+        } catch {
             Cookies.remove(MEMBER_COOKIE_NAME);
         }
     };
@@ -192,7 +192,7 @@ function App() {
                     }
                 }
                 }>部員一覧を初期状態に戻す</button></p>
-            <p className='text-center'>AIを利用したバージョンです。不具合が出る場合は<a href="/doubles-order/">以前のもの</a>を使ってください。</p>
+            <p className='text-center'>不具合が出る場合は<a href="/doubles-order/">以前のもの</a>を使ってください。</p>
             <div className="dm-make container-fluid">
                 <AnimationDiv visible={step === "step1"} onComplete={() => setADone(true)}>
                     <div>
