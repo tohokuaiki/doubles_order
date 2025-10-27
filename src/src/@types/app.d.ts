@@ -8,6 +8,8 @@ export type MemberList = {
     women: Member[];
 };
 
+export type StoredMemberList = Record<SexList, Record<string, number>>;
+
 export type SexList = keyof MemberList;
 
 export type EntryList = Record<SexList, string>;

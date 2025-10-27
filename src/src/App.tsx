@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
 import './App.scss'
 import { type FakeLoadingContextType, FakeLoadingContext } from './components/Context/FakeLoadingContext';
-import type { EntryList, Match, Member, MemberList, Pairs, SexList } from './@types/app';
+import type { EntryList, Match, Member, MemberList, Pairs, SexList, StoredMemberList } from './@types/app';
 import { AnimationDiv } from './lib/JsxUtil';
 import MatchList from './components/MatchList';
 import Cookies from 'js-cookie';
@@ -23,43 +23,68 @@ function App() {
     const [history, setHistory] = useState<Pairs[]>([]);
     const [showMembers, setShowMembers] = useState<boolean>(true);
     const [removeMember, setRemoveMember] = useState<string[]>([]);
+    const [aDone, setADone] = useState(false);
+    const [bDone, setBDone] = useState(false);
+
+    useEffect(() => {
+        if (aDone && bDone) {
+            setTimeout(() => Util.returnTop(), 0.2);
+            setADone(false);
+            setBDone(false);
+        }
+    }, [aDone, bDone]);
 
     const initMemberList = useCallback(() => {
-        // let setok = false;
-        // const cookieData = Cookies.get(MEMBER_COOKIE_NAME);
-        // if (cookieData) {
-        //     try {
-        //         setMemberList(JSON.parse(cookieData));
-        //         setok = true;
-        //     } catch {
-        //         Cookies.remove(MEMBER_COOKIE_NAME);
-        //     }
-        // }
-        // if (!setok) {
-            (async () => {
-                setLoading(true);
-                const resp = await fetch(import.meta.env.VITE_DOUBLES_ORDER_MEMBER);
-                const res = await resp.json() as Record<SexList, Record<string, number>>;
-                setMemberList(() => {
-                    const list = {
-                        men: Object.entries(res.men).map(([k, v]) => ({ name: k, rank: v })),
-                        women: Object.entries(res.women).map(([k, v]) => ({ name: k, rank: v })),
-                    };
-                    // saveMemberList(list);
-                    return list;
-                });
-                setLoading(false);
-            })()
-        // }
+        (async () => {
+            setLoading(true);
+            const resp = await fetch(import.meta.env.VITE_DOUBLES_ORDER_MEMBER);
+            const res = await resp.json() as StoredMemberList;
+            const member = {
+                men: Object.entries(res.men).map(([k, v]) => ({ name: k, rank: v })),
+                women: Object.entries(res.women).map(([k, v]) => ({ name: k, rank: v })),
+            };
+            const cookieData = Cookies.get(MEMBER_COOKIE_NAME);
+            if (cookieData) {
+                try {
+                    const cookieMember = JSON.parse(cookieData) as MemberList;
+                    (Object.entries(cookieMember) as [SexList, Member[]][]).forEach(([sex, c_members]) => {
+                        member[sex] = [
+                            ...member[sex],
+                            ...c_members.filter(
+                                (cm) => !member[sex].some((m) => m.name === cm.name)
+                            ),
+                        ];
+                    });
+                } catch (e) {
+                    Cookies.remove(MEMBER_COOKIE_NAME);
+                }
+            }
+            setMemberList(member);
+            setLoading(false);
+        })()
     }, []);
 
     useEffect(() => {
         initMemberList();
     }, [initMemberList]);
 
-    // const saveMemberList = (list: MemberList) => {
-    //     Cookies.set(MEMBER_COOKIE_NAME, JSON.stringify(list), { expires: 365 });
-    // };
+    const saveMemberList = (list: MemberList) => {
+        try {
+            const current = JSON.parse(Cookies.get(MEMBER_COOKIE_NAME) || '{"men": [], "women": []}') as MemberList;
+            const saveList: MemberList = { men: [], women: [] };
+            (Object.keys(list) as SexList[]).forEach((sex) => {
+                saveList[sex] = [
+                    ...current[sex],
+                    ...list[sex].filter(
+                        (m) => !current[sex].some((cm) => cm.name === m.name)
+                    ),
+                ];
+            });
+            Cookies.set(MEMBER_COOKIE_NAME, JSON.stringify(saveList), { expires: 365 });
+        } catch (e) {
+            Cookies.remove(MEMBER_COOKIE_NAME);
+        }
+    };
 
     const appendMember = (member: Member, sex: SexList) => {
         setEntryList(prev => {
@@ -141,12 +166,13 @@ function App() {
             // 後始末
             resetValues();
             setEntryList({ men: men.join("\n"), women: women.join("\n") });
-            Util.returnTop();
+            setTimeout(() => Util.returnTop(), 2);
         } catch (e) {
             console.log(e);
             alert("失敗しました");
             setLoading(false);
         }
+        saveMemberList(data.entries);
     }
 
     const resetValues = () => {
@@ -156,29 +182,26 @@ function App() {
 
     return (
         <>
-            <p className='text-center'>AIを利用したバージョンです。不具合が出る場合は<a href="/doubles-order/">以前のもの</a>を使ってください。</p>
-            <h1 className="post-title">ミックスダブルス組み合わせ作成
-                <button type="button" className="btn btn-info btn-sm remove-member-btns-plus"
-                    onClick={() => {
-                        if (confirm('最初からやり直しになりますが良いですか？')) {
-                            Cookies.remove(MEMBER_COOKIE_NAME);
-                            setEntryList(defaultEntryList);
-                            setStep('step1')
-                            initMemberList();
-                            resetValues();
-                        }
+            <p className='text-center'><button type="button" className="btn btn-info btn-sm remove-member-btns-plus"
+                onClick={() => {
+                    if (confirm('追加したことのあるメンバー履歴が消去になりますが良いですか？')) {
+                        Cookies.remove(MEMBER_COOKIE_NAME);
+                        setStep('step1')
+                        initMemberList();
+                        resetValues();
                     }
-                    }>部員一覧を初期状態に戻す</button>
-            </h1>
+                }
+                }>部員一覧を初期状態に戻す</button></p>
+            <p className='text-center'>AIを利用したバージョンです。不具合が出る場合は<a href="/doubles-order/">以前のもの</a>を使ってください。</p>
             <div className="dm-make container-fluid">
-                <AnimationDiv visible={step === "step1"}>
+                <AnimationDiv visible={step === "step1"} onComplete={() => setADone(true)}>
                     <div>
                         <h3>参加者の記入
                             <button type="button" className="btn btn-light btn-sm border ml-2 mb-1"
                                 onClick={() => {
                                     setShowMembers((prev) => !prev);
                                 }}>
-                                履歴ボタンを{showMembers ? "非表示" : "表示"}
+                                部員ボタンを{showMembers ? "非表示" : "表示"}
                             </button>
                         </h3>
                         {showMembers ? <div className="row">
@@ -197,15 +220,6 @@ function App() {
                                             onClick={() => appendMember(m, "men")}>
                                             {m.name}
                                         </button>)}</p>
-                                <p className="text-center mt-1">
-                                    <button type="button" className="btn btn-secondary btn-sm remove-member-btns"
-                                        onClick={() => {
-                                            if (confirm('ボタンを全部消してよろしいですか？')) {
-                                                setMemberList(defaultMemberList);
-                                                // saveMemberList(defaultMemberList);
-                                            }
-                                        }}>参加者ボタンを全部消去</button>
-                                </p>
                             </div>
                         </div> : ""}
                         <div className="row dm-inputarea">
@@ -251,7 +265,7 @@ function App() {
                         </div>
                     </div>
                 </AnimationDiv>
-                <AnimationDiv visible={step === "step2"}>
+                <AnimationDiv visible={step === "step2"} onComplete={() => setBDone(true)}>
                     <div key={history.length}>
                         <h3>対戦表</h3>
                         <MatchList matches={matches} setRemoveMember={setRemoveMember} />
@@ -264,6 +278,7 @@ function App() {
                                     <li className="list-group-item list-group-item-danger text-center">女性</li>
                                     <li className="list-group-item">
                                         <textarea
+                                            className='add'
                                             onChange={(e) => {
                                                 setAppendList(prev => {
                                                     const f = { ...prev };
@@ -281,6 +296,7 @@ function App() {
                                     <li className="list-group-item list-group-item-primary text-center">男性</li>
                                     <li className="list-group-item">
                                         <textarea
+                                            className='add'
                                             onChange={(e) => {
                                                 setAppendList(prev => {
                                                     const f = { ...prev };
